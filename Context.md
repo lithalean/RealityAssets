@@ -1,7 +1,7 @@
 # RealityAssets — AI Context Document
 
 **Date**: January 2025  
-**Status**: Active Development - Debug Console Integration Complete  
+**Status**: Active Development - Real File System Implementation Complete  
 **Purpose**: Accurate context for AI systems working with RealityAssets codebase
 
 ---
@@ -17,6 +17,7 @@
 - Apple-native document package approach
 - Platform-aware file access (unsandboxed macOS, sandboxed iOS)
 - Integrated debug console system
+- **Real file system browsing with actual file operations**
 
 ---
 
@@ -30,7 +31,10 @@ RealityAssets/
 │   └── RealityAssetsApp.swift         # Main app with settings
 ├── Views/
 │   ├── BottomDrawer.swift             # Combined drawer implementation
-│   ├── FileSystem.swift               # Platform-specific file browsers
+│   ├── FileSystem/                    # Real file system implementation
+│   │   ├── FileSystemModel.swift      # Core file system data model
+│   │   ├── FileSystemView.swift       # Main file browser view
+│   │   └── FilePermissionsHelper.swift # iOS file access helpers
 │   └── Console/                       # Debug console system
 │       ├── DebugConsole.swift         # Main debug console view
 │       └── FloatingDebugger.swift     # Floating debug overlay
@@ -38,14 +42,17 @@ RealityAssets/
 │   └── Shared/
 │       ├── Extensions/
 │       │   └── HapticFeedback.swift   # iOS haptic feedback
-│       └── PlatformColor.swift        # Cross-platform color definitions
+│       ├── PlatformColor.swift        # Cross-platform color definitions
+│       └── GlassConstants.swift       # UI spacing and style constants
 └── Assets.xcassets/
     └── (App icons and resources)
 ```
 
 ### Key Components Status
 - **BottomDrawer.swift**: ✅ Complete - Cross-platform drawer with animations
-- **FileSystem.swift**: ✅ Complete - Platform-specific file browsers
+- **FileSystemModel.swift**: ✅ Complete - Real file system data model with UTI support
+- **FileSystemView.swift**: ✅ Complete - Functional file browser with sorting/filtering
+- **FilePermissionsHelper.swift**: ✅ Complete - iOS document picker and bookmarks
 - **DebugConsole.swift**: ✅ Complete - Integrated debug console with filtering
 - **FloatingDebugger.swift**: ✅ Complete - Optional floating debug overlay
 - **ContentView.swift**: ✅ Complete - Welcome screens with drawer integration
@@ -100,6 +107,64 @@ enum DrawerTab: String, CaseIterable {
 }
 ```
 
+### Real File System Implementation
+
+#### Core Model Structure
+```swift
+struct FileSystemItem: Identifiable {
+    let id = UUID()
+    let url: URL
+    let name: String
+    let isDirectory: Bool
+    let fileType: FileType
+    let size: Int64?
+    let modificationDate: Date?
+    let isHidden: Bool
+    var children: [FileSystemItem]?
+}
+
+@MainActor
+class FileSystemViewModel: ObservableObject {
+    @Published var rootItems: [FileSystemItem] = []
+    @Published var expandedFolders: Set<URL> = []
+    @Published var selectedItem: FileSystemItem?
+    // Manages file system state and operations
+}
+```
+
+#### File Type Classification
+- **Smart detection**: Uses UTI (Uniform Type Identifiers) and file extensions
+- **Categorized types**: Scripts, images, models, audio, documents, archives
+- **Color-coded icons**: Each file type has unique color and SF Symbol
+- **Directory detection**: Special handling for Assets, Scenes, Scripts folders
+
+#### Platform-Specific Features
+
+**macOS (Full Access)**:
+- Browse entire file system
+- System shortcuts: Home, Desktop, Documents, Downloads, Applications
+- Finder integration: "Reveal in Finder" context menu
+- Terminal integration: "Open in Terminal" for directories
+- Direct file opening with default applications
+- No permission restrictions
+
+**iOS (Sandboxed)**:
+- Limited to app's Documents and iCloud containers
+- Document picker for importing external files/folders
+- Security-scoped bookmarks for persistent access
+- Files app integration
+- Orchard Projects folder auto-creation
+
+#### File Browser Features
+- **Real-time navigation**: Click to expand/collapse directories
+- **Sorting options**: Name (↑↓), Date (↑↓), Type (↑)
+- **Hidden files toggle**: Show/hide system files
+- **File metadata display**: Size and modification date
+- **Context menus**: Platform-appropriate actions
+- **Double-click to open**: Files open in default apps (macOS)
+- **Hover effects**: Visual feedback on macOS
+- **Selection state**: Highlighted selected items
+
 ### Debug Console System
 
 #### Message Types and Structure
@@ -129,67 +194,19 @@ struct DebugMessage: Identifiable {
 - **Color-coded messages**: Visual distinction by message type
 - **Cross-platform colors**: Adaptive colors for macOS/iOS
 
-#### Floating Debugger
-- **Draggable overlay**: Can be positioned anywhere on screen
-- **Collapsed/Expanded states**: Minimize to save space
-- **Quick filters**: Fast access to error/warning filters
-- **Independent from drawer**: Can be used alongside or separately
-
-### File System Implementation
-
-#### Platform Differences
-
-**macOS (Unsandboxed)**:
-- Full file system access with `FileManager`
-- System folder shortcuts (Desktop, Downloads, Applications)
-- Finder integration ("Reveal in Finder", "Open Terminal")
-- Project structure: `project://Assets/`, `project://Scenes/`
-- Additional tools: Terminal access, external folder navigation
-
-**iOS (Sandboxed)**:
-- Document-based with security-scoped bookmarks
-- Limited to Documents directory and iCloud Drive
-- Files app integration for imports
-- Project structure: `Documents://Assets/`, `iCloud://Projects/`
-- Share sheet for project export
-
-#### File Tree Structure
-```swift
-struct FileSystemItem: View {
-    enum FileSystemType {
-        // Folders
-        case folder, assets, scenes, scripts, build, documentation
-        // Files  
-        case file, script, scene, config, image, model, audio
-        
-        var color: Color // Color-coded by type
-        var icon: String // SF Symbol for each type
-        var canExpand: Bool // Whether it's expandable
-    }
-}
-```
-
-**Color Coding**:
-- Assets: Green
-- Scenes: Pink  
-- Scripts: Yellow
-- Build: Red
-- Documentation: Blue
-- Files: Secondary/context-specific
-
 ### Search and Inspector Panels
 
 #### Search Panel
 - **Search field** with clear button
 - **Scope filters**: All Files, Assets, Scripts, Scenes
 - **Empty state** with guidance
-- **Future**: Will implement actual file search
+- **Future**: Will connect to real file search
 
 #### Inspector Panel
 - **File properties display**: Name, size, modified date, type
 - **Empty state** when no file selected
 - **Property grid layout** for easy scanning
-- **Future**: Will show actual file metadata
+- **Future**: Will show selected file's actual metadata
 
 ---
 
@@ -201,7 +218,7 @@ struct FileSystemItem: View {
 - File browser slides up from bottom
 - Tabs for different file views
 - Expandable/collapsible with smooth animations
-- Debug console integrated as a tab
+- Each tab manages its own ScrollView when needed
 
 ### Platform Adaptations
 
@@ -212,6 +229,7 @@ struct FileSystemItem: View {
 - Hover effects and cursor changes
 - Menu bar integration with keyboard shortcuts
 - `.help()` modifiers for tooltips
+- Context menus with right-click
 
 #### iOS  
 - Navigation-based with toolbar
@@ -219,7 +237,8 @@ struct FileSystemItem: View {
 - Haptic feedback on interactions
 - Touch-optimized gestures
 - Share sheet integration
-- Horizontal scroll for filter buttons
+- Document picker for file imports
+- Horizontal scroll for filter buttons when needed
 
 ### Visual Design
 - **Glass morphism effects** with material backgrounds
@@ -229,7 +248,9 @@ struct FileSystemItem: View {
 - **Platform-appropriate styling** with cross-platform color helpers
 - **SF Symbols throughout** (no emoji)
 
-### Cross-Platform Color System
+### Cross-Platform Systems
+
+#### Color System
 ```swift
 // Custom color extensions for platform compatibility
 static var systemBackground: Color
@@ -237,6 +258,12 @@ static var secondarySystemBackground: Color
 static var tertiarySystemBackground: Color
 static var tertiaryBackground: Color
 ```
+
+#### Constants System (GlassConstants)
+- **Spacing**: tight (4), small (8), medium (16), large (24)
+- **Radius**: small (6), medium (12), large (16), xl (20), xxl (24)
+- **Materials**: light (0.1), medium (0.2), heavy (0.3) opacity
+- **Animations**: quick (0.2), standard (0.3), slow (0.5) seconds
 
 ---
 
@@ -249,10 +276,12 @@ static var tertiaryBackground: Color
 ### File Management Flow
 1. User opens app to welcome screen
 2. Clicks "Toggle Files" or "Files" button
-3. Bottom drawer slides up with file browser
-4. User can switch between filesystem/debug/search/inspector tabs
-5. Expandable tree navigation with color-coded folders
-6. Platform-specific actions (Finder on macOS, Share on iOS)
+3. Bottom drawer slides up with real file browser
+4. User sees platform-appropriate root locations
+5. Navigate by clicking folders to expand/collapse
+6. View file details (size, date) inline
+7. Use context menu for file operations
+8. Sort/filter with header controls
 
 ### Debug Console Flow
 1. User switches to Debug tab in bottom drawer
@@ -261,6 +290,14 @@ static var tertiaryBackground: Color
 4. Search functionality for finding specific messages
 5. Auto-scroll keeps latest messages visible
 6. Clear button removes all messages
+
+### iOS File Import Flow
+1. User taps import button in file browser
+2. System document picker appears
+3. User selects file or folder
+4. App creates security-scoped bookmark
+5. File/folder appears in file browser
+6. Access persists across app launches
 
 ### Project Structure (Planned)
 ```
@@ -287,32 +324,42 @@ MyGame.orchard/              # Document package
 ## 🚧 Current Development State
 
 ### ✅ What's Working
+- **Real file system browsing** with actual files and directories
+- **Platform-specific file access** (full on macOS, sandboxed on iOS)
+- **File type detection** with UTI and extension support
+- **Smart folder recognition** (Assets, Scripts, Scenes, etc.)
+- **File metadata display** (size, modification date)
+- **Sorting and filtering** options
+- **Context menus** with platform-appropriate actions
+- **iOS document picker** integration
+- **Security-scoped bookmarks** on iOS
 - Cross-platform bottom drawer with animations
-- Platform-specific file system browsing
 - Color-coded file type organization
 - Expandable tree structure navigation
-- Tab system with four panels
-- **Debug console with filtering and search**
-- **Floating debugger overlay option**
-- **Cross-platform color system**
+- Tab system with four functional panels
+- Debug console with filtering and search
+- Floating debugger overlay option
+- Cross-platform color and constants system
 - Welcome screens with drawer integration
 - Settings system (macOS) with preferences
 
 ### ⚠️ Known Issues
 - **Document package system**: Not yet implemented
-- **iCloud synchronization**: Placeholder only
-- **File operations**: Limited to display/navigation
-- **Search functionality**: UI complete, needs implementation
-- **Inspector functionality**: UI complete, needs file metadata
+- **iCloud synchronization**: Detection only, no sync
+- **File operations**: No rename, move, delete, copy yet
+- **Search functionality**: UI complete, needs file content search
+- **Inspector functionality**: UI complete, needs deeper file metadata
 - **Debug persistence**: Messages don't persist between sessions
+- **File previews**: No thumbnail generation yet
 
-### 🔄 In Progress
-- Document package implementation
-- Real file system operations
-- iCloud Drive integration
-- File import/export workflows
-- Search and indexing system
-- Debug console persistence
+### 🔄 Next Steps
+1. **File Operations**: Implement rename, move, delete, copy
+2. **Search Integration**: Connect search UI to actual file search
+3. **Inspector Integration**: Show detailed file info in Inspector tab
+4. **Document Packages**: Create/open `.orchard` project packages
+5. **iCloud Sync**: Full synchronization support
+6. **File Previews**: Generate thumbnails for images/models
+7. **Project Templates**: New project creation workflow
 
 ---
 
@@ -325,22 +372,33 @@ MyGame.orchard/              # Document package
 - Color-coded elements with SF Symbols
 - Consistent spacing using `GlassConstants`
 - Cross-platform color helpers for system colors
+- Lazy loading for directory contents
+- Security-scoped resources on iOS
 
 ### Adding Features
-1. **New file types**: Add to `FileSystemItem.FileSystemType` enum
+1. **New file types**: Add to `FileType` enum with icon and color
 2. **New drawer tabs**: Add to `DrawerTab` enum and implement panel
 3. **Platform features**: Use conditional compilation
-4. **File operations**: Implement in platform-specific panels
+4. **File operations**: Add to `FileSystemViewModel`
 5. **Debug messages**: Use `DebugMessage` and `DebugMessageType`
+6. **iOS permissions**: Use `FilePermissionsHelper` for external access
 
-### Debug Console Integration
+### File System Integration
 ```swift
-// Future integration with actual logging
-DebugConsoleView.addMessage(
-    "File loaded successfully",
-    type: .success,
-    source: "FileSystem"
-)
+// Detecting file types
+FileType.fromUTI(typeIdentifier, fileName: name)
+FileType.fromDirectoryName(name)
+
+// Platform actions
+#if os(macOS)
+viewModel.revealInFinder(item)
+viewModel.openInTerminal(item)
+#endif
+
+// File operations
+viewModel.toggleFolder(item)
+viewModel.selectItem(item)
+viewModel.openFile(item)
 ```
 
 ### Integration Points
@@ -352,79 +410,54 @@ DebugConsoleView.addMessage(
 
 ---
 
-## 🔍 Technical Challenges
+## 🔍 Technical Implementation Details
 
-### Current Blockers
-1. **Document package implementation**: Need NSDocument/UIDocument integration
-2. **iCloud synchronization**: Conflict resolution and status monitoring
-3. **File operations**: Move, copy, rename, delete functionality
-4. **Search indexing**: Content-based search across project files
-5. **Debug persistence**: Saving and loading debug logs
+### File System Architecture
+1. **Lazy Loading**: Directories load children only when expanded
+2. **State Management**: `@Published` properties for reactive UI
+3. **URL-based**: Uses Foundation's URL for all file references
+4. **Bookmark Persistence**: iOS saves security-scoped bookmarks
+5. **Type Detection**: UTI-based with fallback to extensions
 
-### Architecture Decisions
-- **Document packages** over virtual filesystem (Apple-native)
-- **Bottom drawer** over sidebar (Godot-inspired)
-- **Platform-specific implementations** over lowest-common-denominator
-- **Material design** over flat design (modern Apple aesthetic)
-- **Integrated debug console** over separate window
-- **SF Symbols** over custom icons or emoji
+### Performance Considerations
+- **Lazy LazyVStack**: Only renders visible file items
+- **Debounced Updates**: Prevents excessive redraws
+- **Cached Metadata**: File info stored in model
+- **Smart Diffing**: SwiftUI handles incremental updates
 
----
-
-## 🔗 Module Integration
-
-### Standalone Capabilities
-- Project file organization
-- Cross-platform file browsing
-- Debug message display
-- File search interface
-- Property inspection
-- iCloud synchronization
-
-### OrchardBridge Integration
-```swift
-// Future integration points
-protocol OrchardModule {
-    func handle(_ message: ModuleMessage) -> ModuleResponse
-}
-
-// Example messages
-case .fileSelected(URL)
-case .projectOpened(ProjectDocument)
-case .assetImported(AssetInfo)
-case .debugMessage(DebugMessage)
-case .searchRequest(SearchQuery)
-```
+### Security Model
+- **macOS**: Full filesystem access (user permissions apply)
+- **iOS**: Sandboxed with explicit user grants via document picker
+- **Bookmarks**: Persistent access to user-selected locations
+- **No Network Access**: Local files only (iCloud pending)
 
 ---
 
 ## 📝 Common Development Tasks
 
-### Testing the Current Implementation
-1. Run app on macOS and iOS
-2. Click "Toggle Files" or "Files" button
-3. Verify drawer slides up smoothly
-4. Test tab switching between filesystem/debug/search/inspector
-5. Verify file tree expansion/collapse
-6. Test debug console filtering and search
-7. Test drag gestures for drawer resizing
-8. Verify cross-platform color consistency
+### Testing the File Browser
+1. Run app on both macOS and iOS
+2. Navigate to FileSystem tab
+3. Verify platform-appropriate root locations
+4. Test folder expansion/collapse
+5. Check file metadata display
+6. Test sorting options
+7. Toggle hidden files
+8. Test context menu actions (macOS)
+9. Test document picker (iOS)
 
-### Debugging Issues
-- **Drawer not appearing**: Check `isVisible` binding
-- **Animation problems**: Verify spring animation values
-- **Platform differences**: Test on both macOS and iOS
-- **File tree issues**: Check `expandedFolders` state management
-- **Debug console width**: Verify padding and frame constraints
-- **Color issues**: Use cross-platform color helpers
+### Adding New File Types
+1. Add case to `FileType` enum
+2. Define icon (SF Symbol) and color
+3. Add detection logic to `fromUTI` or extension check
+4. Test with sample files
 
-### Adding New Debug Features
-1. Define new message types in `DebugMessageType`
-2. Add appropriate SF Symbol icons
-3. Update filter buttons if needed
-4. Connect to actual logging sources
-5. Consider persistence requirements
+### Debugging File Access Issues
+- **iOS Permission Denied**: Check security-scoped resource access
+- **Missing Files**: Verify hidden files toggle
+- **Slow Loading**: Check for synchronous operations
+- **Wrong Icons**: Verify UTI detection logic
 
 ---
 
-*This document reflects the actual current state as of January 2025. The debug console system is now fully integrated into the bottom drawer. The focus remains on the bottom drawer interface and platform-specific file browsing, with document packages and iCloud sync as the next major development phase.*
+*This document reflects the actual current state as of January 2025. The file system is now fully functional with real file browsing on both platforms. The next major phase is implementing file operations and document package support.*

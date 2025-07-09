@@ -15,10 +15,15 @@ lithalean@Mac RealityAssets % tree
 │   ├── Sources
 │   │   └── Shared
 │   │       ├── Extensions
+│   │       │   ├── FilePermissionsHelper.swift
 │   │       │   └── HapticFeedback.swift
 │   │       ├── PlatformColor.swift
 │   │       └── Types
 │   │           └── TreeSitterStatusTypes.swift
+│   ├── Styles
+│   │   └── GlassComponents
+│   │       └── Foundation
+│   │           └── GlassConstants.swift
 │   └── Views
 │       ├── BottomDrawer.swift
 │       ├── Console
@@ -26,6 +31,7 @@ lithalean@Mac RealityAssets % tree
 │       │   ├── ConsoleMessageType.swift
 │       │   ├── DebugConsole.swift
 │       │   ├── DebuggerOverlay.swift
+│       │   ├── FileSystemModel.swift
 │       │   └── FloatingDebugger.swift
 │       └── FileSystem.swift
 └── RealityAssets.xcodeproj
@@ -43,5 +49,5 @@ lithalean@Mac RealityAssets % tree
             └── xcschemes
                 └── xcschememanagement.plist
 
-22 directories, 20 files
+25 directories, 23 files
 lithalean@Mac RealityAssets % 

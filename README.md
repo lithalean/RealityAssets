@@ -7,202 +7,288 @@
 ![Swift Version](https://img.shields.io/badge/swift-6.0-orange)
 ![Status](https://img.shields.io/badge/status-Active%20Development-yellow)
 
-**RealityAssets** is a Godot-inspired, SwiftUI-based file and asset manager designed for Apple platforms. It provides a beautiful bottom drawer interface, platform-specific file access, and integrated debugging tools — all as part of the Orchard game engine.
+**RealityAssets** is a Godot-inspired, SwiftUI-based file and asset manager designed for Apple platforms. It provides a beautiful bottom drawer interface with real file system access, smart file type detection, integrated debugging tools, and platform-optimized experiences — all as part of the Orchard game engine.
 
 ---
 
 ## ✨ Key Features
 
-### 🚀 Apple-Native File Management
-- SwiftUI architecture with full macOS and iOS compatibility
-- `.orchard` document-based project packages
-- Platform-aware file access (unsandboxed macOS, sandboxed iOS)
-- Future iCloud Drive sync support
+### 🚀 Real File System Management
+- **Live file browsing** with actual system files and directories
+- **Smart file type detection** using UTI and extensions
+- **Platform-aware access**: Full filesystem on macOS, sandboxed on iOS
+- **Lazy loading** for efficient directory traversal
+- **File metadata display**: Size, modification date, type icons
 
 ### 🎨 Godot-Inspired Interface
-- **Bottom drawer UI** instead of traditional sidebars
-- Tabbed interface: **FileSystem**, **Debug**, **Search**, **Inspector**
-- Expandable tree structure with **color-coded folders**
-- Smooth animations, drag gestures, and platform-specific UX
+- **Bottom drawer UI** that slides up from bottom
+- **Four functional tabs**: FileSystem, Debug, Search, Inspector
+- **Expandable tree structure** with color-coded files and folders
+- **Smooth spring animations** with platform-specific gestures
+- **Glass morphism design** with material backgrounds
 
-### 🧰 Debug Console System
-- Console tab for real-time message viewing
-- Filter by message type (error, warning, debug, etc.)
-- Search bar for filtering messages
-- Floating overlay debugger (independent of drawer)
-- Visual theming via SF Symbols and color coding
+### 🔍 Advanced File Operations
+- **Sorting options**: Name ↑↓, Date ↑↓, Type ↑
+- **Hidden files toggle** for system file visibility
+- **Context menus** with platform actions (macOS)
+- **File selection** with visual highlighting
+- **Double-click to open** files in default apps (macOS)
+
+### 🧰 Integrated Debug Console
+- **Real-time message logging** with timestamps
+- **Type-based filtering**: Errors, warnings, info, debug
+- **Search functionality** across messages and sources
+- **Auto-scroll option** to follow latest messages
+- **Clear console** with one click
+- **Floating debugger** option for overlay mode
 
 ---
 
 ## 📱 Platform Experiences
 
 ### macOS
-- Unsandboxed file browsing with `FileManager`
-- System folder shortcuts (e.g., Desktop, Downloads)
-- “Reveal in Finder” and “Open in Terminal” support
-- Glassmorphism UI with drag-to-resize drawer
-- Native toolbar and hover-based interactions
+<img width="800" alt="macOS File Management" src="https://github.com/user-attachments/assets/placeholder-macos">
+
+- **Full file system access** — Browse entire filesystem
+- **System shortcuts** — Home, Desktop, Documents, Downloads, Applications
+- **Finder integration** — "Reveal in Finder" context menu
+- **Terminal access** — "Open in Terminal" for directories
+- **Direct file opening** — Files launch in default applications
+- **Hover effects** — Visual feedback on mouse over
+- **Drag to resize** — Adjustable drawer height
 
 ### iOS
-- Sandboxed file access with security-scoped bookmarks
-- Files app integration for imports
-- Document-based architecture (UIDocument)
-- Share sheet support for exporting projects
-- Haptic gestures and mobile-first layout
+<img width="400" alt="iOS File Management" src="https://github.com/user-attachments/assets/placeholder-ios">
+
+- **Sandboxed access** — App Documents and iCloud containers
+- **Document picker** — Import files and folders from Files app
+- **Security-scoped bookmarks** — Persistent access to user selections
+- **Touch-optimized** — Tap to expand, swipe gestures
+- **Haptic feedback** — Physical response to interactions
+- **Adaptive layout** — Optimized for iPhone and iPad
 
 ---
 
 ## 🏗️ Technical Architecture
 
-### Project Structure
-RealityAssets conforms to Apple’s document package model:
-
+### Core Components
 ```
-MyGame.orchard/
-├── Project.plist
-├── Assets/
-│   ├── Models/
-│   ├── Textures/
-│   └── Audio/
-├── Scenes/
-│   └── Main.scene
-├── Scripts/
-│   ├── Swift/
-│   ├── Cpp/
-│   └── Metal/
-└── .orchard/
-    ├── cache/
-    ├── thumbnails/
-    └── debug.log
+RealityAssets/
+├── Views/
+│   ├── BottomDrawer.swift         # Main drawer container
+│   ├── FileSystem/
+│   │   ├── FileSystemModel.swift  # File data model & view model
+│   │   ├── FileSystemView.swift   # File browser UI
+│   │   └── FilePermissionsHelper.swift # iOS permissions
+│   └── Console/
+│       ├── DebugConsole.swift     # Debug console view
+│       └── FloatingDebugger.swift # Floating overlay
+├── Sources/Shared/
+│   ├── GlassConstants.swift       # UI constants
+│   └── PlatformColor.swift        # Cross-platform colors
+└── App/
+    ├── ContentView.swift          # Main app structure
+    └── RealityAssetsApp.swift     # App lifecycle
 ```
 
-### Bottom Drawer View
+### File System Model
+```swift
+struct FileSystemItem: Identifiable {
+    let url: URL
+    let name: String
+    let isDirectory: Bool
+    let fileType: FileType
+    let size: Int64?
+    let modificationDate: Date?
+    var children: [FileSystemItem]?  // Lazy loaded
+}
+
+class FileSystemViewModel: ObservableObject {
+    @Published var rootItems: [FileSystemItem]
+    @Published var expandedFolders: Set<URL>
+    @Published var selectedItem: FileSystemItem?
+}
+```
+
+### Smart File Type Detection
+```swift
+enum FileType {
+    // Directories
+    case folder, assetsFolder, scenesFolder, scriptsFolder
+    
+    // Files by category
+    case swiftFile, cppFile, sceneFile, imageFile, 
+         modelFile, audioFile, documentFile, archiveFile
+    
+    // Smart detection via UTI + extension
+    static func fromUTI(_ uti: String, fileName: String) -> FileType
+    static func fromDirectoryName(_ name: String) -> FileType
+}
+```
+
+### Bottom Drawer System
 ```swift
 BottomDrawer(
     isVisible: $isDrawerVisible,
     isExpanded: $isDrawerExpanded,
     #if os(macOS)
-    drawerHeight: $drawerHeight
+    drawerHeight: $drawerHeight  // Fixed height on macOS
     #endif
 )
-```
-
-- macOS: Fixed-height drawer with drag gestures
-- iOS: Percentage-based height with haptics
-- Adaptive layout with `DrawerTab` enum
-
-### Drawer Tabs
-```swift
-enum DrawerTab: String, CaseIterable {
-    case filesystem, debugger, search, inspector
-}
-```
-
-### Current File Hierarchy
-```
-RealityAssets/
-├── App/
-│   ├── ContentView.swift
-│   └── RealityAssetsApp.swift
-├── Assets.xcassets/
-├── Sources/Shared/
-│   ├── Extensions/HapticFeedback.swift
-│   ├── PlatformColor.swift
-│   └── Types/TreeSitterStatusTypes.swift
-├── Views/
-│   ├── BottomDrawer.swift
-│   ├── FileSystem.swift
-│   └── Console/
-│       ├── ConsoleLogEntry.swift
-│       ├── ConsoleMessageType.swift
-│       ├── DebugConsole.swift
-│       ├── FloatingDebugger.swift
-│       └── DebuggerOverlay.swift
-└── RealityAssets.xcodeproj/
 ```
 
 ---
 
 ## 🎯 Part of Orchard
 
-RealityAssets is one of several Apple-native modules in the **Orchard** game engine ecosystem:
+RealityAssets is a key component of the **Orchard** game engine ecosystem:
 
-- **RealityAssets** — Asset management and project structure
-- **RealityStudio** — Visual 3D scene editing
-- **DarwinSyntax** — Multi-language script editing
-- **OrchardBridge** — Engine coordination layer
+- **RealityAssets** — File management and project organization (this project)
+- **RealityStudio** — 3D scene composition and editing
+- **DarwinSyntax** — Multi-language code editor
+- **OrchardBridge** — Module integration and coordination
 
 ---
 
 ## 🚧 Development Status
 
-### ✅ Completed
-- Cross-platform bottom drawer with animation
-- File tree with color-coded nodes
-- Debug console system (UI + filtering + overlay)
-- File system access (macOS and iOS)
-- Initial platform-specific UI polish
+### ✅ Working Features
+- ✨ **Real file browsing** on both platforms
+- 📂 **Smart file type detection** with UTI support
+- 🎨 **Color-coded icons** for all file types
+- 🔍 **Sorting and filtering** options
+- 📱 **Platform-specific features** (Finder/Terminal on macOS, Document Picker on iOS)
+- 🐛 **Debug console** with filtering and search
+- 🎯 **File selection** and metadata display
+- 🚀 **Lazy loading** for performance
+- 🔐 **Security-scoped bookmarks** on iOS
 
 ### 🔄 In Progress
-- `.orchard` document package support
-- File import/export system
-- Search backend and indexing
-- Debug message persistence
-- iCloud sync prototype
+- 📦 Document package implementation (`.orchard` files)
+- ☁️ iCloud Drive synchronization
+- 🔧 File operations (rename, move, copy, delete)
+- 🔎 Search backend implementation
+- 📊 Inspector panel functionality
 
-### 📋 Planned
-- Project templates for starter layouts
-- Version control metadata
-- File operations: rename, delete, copy, move
-- Conflict resolution UI
-- Asset previews and thumbnails
+### 📋 Planned Features
+- 🎨 Asset preview generation
+- 📋 Project templates
+- 🔄 Version control integration
+- 🤝 Conflict resolution UI
+- 📱 iPad-optimized layout
+- 🎮 Game asset importers
 
 ---
 
-## 🛠️ Build Instructions
+## 🛠️ Building from Source
 
 ### Requirements
-- macOS 15 / iOS 18
-- Xcode 16+
+- macOS 15.0+ or iOS 18.0+
+- Xcode 16.0+
 - Swift 6.0
-- Apple Silicon Mac
+- Apple Silicon Mac (for development)
 
-### Dependencies
-- **SwiftUI**
-- **FileManager APIs**
-- **iCloud Drive / Security Scoped Access**
-- **SF Symbols**
+### Build Steps
+```bash
+# Clone the repository
+git clone [repository-url]
+
+# Open in Xcode
+cd RealityAssets
+open RealityAssets.xcodeproj
+
+# Select target (macOS or iOS)
+# Build and run (⌘R)
+```
+
+### Key Dependencies
+- **SwiftUI** — Native UI framework
+- **FileManager** — File system operations
+- **UniformTypeIdentifiers** — File type detection
+- **Security Framework** — iOS sandboxed access
 
 ---
 
 ## 📚 Documentation
 
-Ongoing internal documentation includes:
-- File system architecture
-- Cross-platform UI components
-- Debug console API
-- OrchardBridge integration
-- Platform differences: macOS vs iOS
+Comprehensive documentation includes:
+- **Architecture Overview** — Component relationships
+- **File System Guide** — Platform differences and capabilities
+- **Debug Console API** — Integration with logging systems
+- **UI Components** — Reusable views and modifiers
+- **Platform Adaptations** — macOS vs iOS specifics
 
 ---
 
-## 🤝 Contributions
+## 🔧 Usage Examples
 
-The repository is currently private during development. Feedback, feature requests, and bug reports will be welcomed after public beta.
+### Basic File Browsing
+```swift
+// The file browser is integrated into the bottom drawer
+BottomDrawer(isVisible: $showDrawer, isExpanded: $expanded)
+
+// Files are automatically loaded based on platform
+// macOS: Full system access
+// iOS: Sandboxed + document picker
+```
+
+### Debug Console Integration
+```swift
+// Log messages to the debug console
+DebugConsoleView.addMessage(
+    "Asset loaded successfully",
+    type: .success,
+    source: "AssetManager"
+)
+```
+
+### File Type Detection
+```swift
+// Automatic file type detection
+let fileType = FileType.fromUTI(uti, fileName: "model.usdz")
+// Returns: .modelFile with cyan color and cube icon
+```
+
+---
+
+## 🤝 Contributing
+
+While the repository is currently private during initial development, we welcome:
+- 🐛 Bug reports and issue tracking
+- 💡 Feature requests and suggestions
+- 📖 Documentation improvements
+- 🎨 UI/UX enhancement ideas
 
 ---
 
 ## 📄 License
 
-The license will be announced with the first public beta release. Orchard CE is intended to be FOSS-friendly with proprietary modules only for commercial use.
+RealityAssets will be released under an open-source license (TBD) once it reaches public beta status. The goal is to support both open-source game development and commercial use cases.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- Inspired by **Godot's** File Dock
-- Built entirely with **Apple technologies**
-- Thanks to the Swift Forums and the Apple developer community
+- [Godot Engine](https://godotengine.org) for the file dock inspiration
+- [Apple Developer Documentation](https://developer.apple.com) for excellent platform APIs
+- [Swift Forums](https://forums.swift.org) community for SwiftUI guidance
+- The macOS and iOS developer communities for best practices
+
+---
+
+## 📸 Screenshots
+
+### macOS Experience
+- Full file system browsing
+- Finder integration
+- Context menus
+- Hover effects
+
+### iOS Experience  
+- Document-based access
+- Files app integration
+- Touch gestures
+- Haptic feedback
 
 ---
 

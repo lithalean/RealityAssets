@@ -1,7 +1,7 @@
 # RealityAssets — AI Context Document
 
 **Date**: January 2025  
-**Status**: Active Development - Bottom Drawer Implementation Phase  
+**Status**: Active Development - Debug Console Integration Complete  
 **Purpose**: Accurate context for AI systems working with RealityAssets codebase
 
 ---
@@ -16,6 +16,7 @@
 - Godot-inspired bottom drawer interface
 - Apple-native document package approach
 - Platform-aware file access (unsandboxed macOS, sandboxed iOS)
+- Integrated debug console system
 
 ---
 
@@ -27,17 +28,17 @@ RealityAssets/
 ├── App/
 │   ├── ContentView.swift              # Platform router & main UI
 │   └── RealityAssetsApp.swift         # Main app with settings
-├── Core/
-│   └── (Future file management logic)
-├── UI/
+├── Views/
 │   ├── BottomDrawer.swift             # Combined drawer implementation
-│   └── FileSystem.swift              # Platform-specific file browsers
+│   ├── FileSystem.swift               # Platform-specific file browsers
+│   └── Console/                       # Debug console system
+│       ├── DebugConsole.swift         # Main debug console view
+│       └── FloatingDebugger.swift     # Floating debug overlay
 ├── Sources/
 │   └── Shared/
-│       ├── Components/
 │       ├── Extensions/
 │       │   └── HapticFeedback.swift   # iOS haptic feedback
-│       └── PlatformColor.swift
+│       └── PlatformColor.swift        # Cross-platform color definitions
 └── Assets.xcassets/
     └── (App icons and resources)
 ```
@@ -45,6 +46,8 @@ RealityAssets/
 ### Key Components Status
 - **BottomDrawer.swift**: ✅ Complete - Cross-platform drawer with animations
 - **FileSystem.swift**: ✅ Complete - Platform-specific file browsers
+- **DebugConsole.swift**: ✅ Complete - Integrated debug console with filtering
+- **FloatingDebugger.swift**: ✅ Complete - Optional floating debug overlay
 - **ContentView.swift**: ✅ Complete - Welcome screens with drawer integration
 - **RealityAssetsApp.swift**: ✅ Complete - App structure with settings
 
@@ -85,8 +88,52 @@ enum DrawerTab: String, CaseIterable {
     case debugger = "Debug"
     case search = "Search"
     case inspector = "Inspector"
+    
+    var icon: String {
+        switch self {
+        case .filesystem: return "folder.fill"
+        case .debugger: return "terminal.fill"
+        case .search: return "magnifyingglass"
+        case .inspector: return "info.circle.fill"
+        }
+    }
 }
 ```
+
+### Debug Console System
+
+#### Message Types and Structure
+```swift
+enum DebugMessageType {
+    case success, error, warning, info, debug, system
+    
+    var color: Color // Color-coded messages
+    var icon: String // SF Symbol for each type
+}
+
+struct DebugMessage: Identifiable {
+    let id = UUID()
+    let timestamp: Date
+    let message: String
+    let type: DebugMessageType
+    let source: String?  // Optional source identifier
+}
+```
+
+#### Console Features
+- **Real-time logging**: Messages appear with timestamps
+- **Type filtering**: Filter by error, warning, info, debug
+- **Search functionality**: Search through message content and sources
+- **Auto-scroll**: Option to automatically scroll to latest messages
+- **Clear function**: Clear all messages from console
+- **Color-coded messages**: Visual distinction by message type
+- **Cross-platform colors**: Adaptive colors for macOS/iOS
+
+#### Floating Debugger
+- **Draggable overlay**: Can be positioned anywhere on screen
+- **Collapsed/Expanded states**: Minimize to save space
+- **Quick filters**: Fast access to error/warning filters
+- **Independent from drawer**: Can be used alongside or separately
 
 ### File System Implementation
 
@@ -130,6 +177,20 @@ struct FileSystemItem: View {
 - Documentation: Blue
 - Files: Secondary/context-specific
 
+### Search and Inspector Panels
+
+#### Search Panel
+- **Search field** with clear button
+- **Scope filters**: All Files, Assets, Scripts, Scenes
+- **Empty state** with guidance
+- **Future**: Will implement actual file search
+
+#### Inspector Panel
+- **File properties display**: Name, size, modified date, type
+- **Empty state** when no file selected
+- **Property grid layout** for easy scanning
+- **Future**: Will show actual file metadata
+
 ---
 
 ## 🎨 UI/UX Architecture
@@ -140,6 +201,7 @@ struct FileSystemItem: View {
 - File browser slides up from bottom
 - Tabs for different file views
 - Expandable/collapsible with smooth animations
+- Debug console integrated as a tab
 
 ### Platform Adaptations
 
@@ -149,6 +211,7 @@ struct FileSystemItem: View {
 - Glass material backgrounds
 - Hover effects and cursor changes
 - Menu bar integration with keyboard shortcuts
+- `.help()` modifiers for tooltips
 
 #### iOS  
 - Navigation-based with toolbar
@@ -156,13 +219,24 @@ struct FileSystemItem: View {
 - Haptic feedback on interactions
 - Touch-optimized gestures
 - Share sheet integration
+- Horizontal scroll for filter buttons
 
 ### Visual Design
 - **Glass morphism effects** with material backgrounds
 - **Smooth spring animations** for all transitions
-- **Color-coded file types** for quick identification
+- **Color-coded elements** for quick identification
 - **Consistent spacing** using `GlassConstants`
-- **Platform-appropriate styling** (NSColor vs UIColor)
+- **Platform-appropriate styling** with cross-platform color helpers
+- **SF Symbols throughout** (no emoji)
+
+### Cross-Platform Color System
+```swift
+// Custom color extensions for platform compatibility
+static var systemBackground: Color
+static var secondarySystemBackground: Color  
+static var tertiarySystemBackground: Color
+static var tertiaryBackground: Color
+```
 
 ---
 
@@ -180,6 +254,14 @@ struct FileSystemItem: View {
 5. Expandable tree navigation with color-coded folders
 6. Platform-specific actions (Finder on macOS, Share on iOS)
 
+### Debug Console Flow
+1. User switches to Debug tab in bottom drawer
+2. Console shows real-time messages with timestamps
+3. User can filter by message type (errors, warnings, etc.)
+4. Search functionality for finding specific messages
+5. Auto-scroll keeps latest messages visible
+6. Clear button removes all messages
+
 ### Project Structure (Planned)
 ```
 MyGame.orchard/              # Document package
@@ -196,7 +278,8 @@ MyGame.orchard/              # Document package
 │   └── Metal/             # .metal shaders
 └── .orchard/
     ├── cache/             # System files
-    └── thumbnails/        # Generated previews
+    ├── thumbnails/        # Generated previews
+    └── debug.log          # Debug console persistence
 ```
 
 ---
@@ -208,7 +291,10 @@ MyGame.orchard/              # Document package
 - Platform-specific file system browsing
 - Color-coded file type organization
 - Expandable tree structure navigation
-- Tab system for different views
+- Tab system with four panels
+- **Debug console with filtering and search**
+- **Floating debugger overlay option**
+- **Cross-platform color system**
 - Welcome screens with drawer integration
 - Settings system (macOS) with preferences
 
@@ -216,8 +302,9 @@ MyGame.orchard/              # Document package
 - **Document package system**: Not yet implemented
 - **iCloud synchronization**: Placeholder only
 - **File operations**: Limited to display/navigation
-- **Search functionality**: Not implemented
-- **Preview generation**: Not implemented
+- **Search functionality**: UI complete, needs implementation
+- **Inspector functionality**: UI complete, needs file metadata
+- **Debug persistence**: Messages don't persist between sessions
 
 ### 🔄 In Progress
 - Document package implementation
@@ -225,6 +312,7 @@ MyGame.orchard/              # Document package
 - iCloud Drive integration
 - File import/export workflows
 - Search and indexing system
+- Debug console persistence
 
 ---
 
@@ -234,20 +322,33 @@ MyGame.orchard/              # Document package
 - Use `#if os(macOS)` for platform-specific code
 - Material backgrounds with glass effects
 - Spring animations for smooth transitions
-- Color-coded file types with SF Symbols
+- Color-coded elements with SF Symbols
 - Consistent spacing using `GlassConstants`
+- Cross-platform color helpers for system colors
 
 ### Adding Features
 1. **New file types**: Add to `FileSystemItem.FileSystemType` enum
 2. **New drawer tabs**: Add to `DrawerTab` enum and implement panel
 3. **Platform features**: Use conditional compilation
 4. **File operations**: Implement in platform-specific panels
+5. **Debug messages**: Use `DebugMessage` and `DebugMessageType`
+
+### Debug Console Integration
+```swift
+// Future integration with actual logging
+DebugConsoleView.addMessage(
+    "File loaded successfully",
+    type: .success,
+    source: "FileSystem"
+)
+```
 
 ### Integration Points
 - **OrchardBridge**: Will coordinate with other modules
 - **RealityStudio**: Will receive file selection events
 - **DarwinSyntax**: Will handle script file editing
 - **iCloud Drive**: For cross-device synchronization
+- **Debug System**: Will connect to engine logging
 
 ---
 
@@ -258,12 +359,15 @@ MyGame.orchard/              # Document package
 2. **iCloud synchronization**: Conflict resolution and status monitoring
 3. **File operations**: Move, copy, rename, delete functionality
 4. **Search indexing**: Content-based search across project files
+5. **Debug persistence**: Saving and loading debug logs
 
 ### Architecture Decisions
 - **Document packages** over virtual filesystem (Apple-native)
 - **Bottom drawer** over sidebar (Godot-inspired)
 - **Platform-specific implementations** over lowest-common-denominator
 - **Material design** over flat design (modern Apple aesthetic)
+- **Integrated debug console** over separate window
+- **SF Symbols** over custom icons or emoji
 
 ---
 
@@ -272,8 +376,10 @@ MyGame.orchard/              # Document package
 ### Standalone Capabilities
 - Project file organization
 - Cross-platform file browsing
+- Debug message display
+- File search interface
+- Property inspection
 - iCloud synchronization
-- File import/export
 
 ### OrchardBridge Integration
 ```swift
@@ -286,6 +392,8 @@ protocol OrchardModule {
 case .fileSelected(URL)
 case .projectOpened(ProjectDocument)
 case .assetImported(AssetInfo)
+case .debugMessage(DebugMessage)
+case .searchRequest(SearchQuery)
 ```
 
 ---
@@ -298,14 +406,25 @@ case .assetImported(AssetInfo)
 3. Verify drawer slides up smoothly
 4. Test tab switching between filesystem/debug/search/inspector
 5. Verify file tree expansion/collapse
-6. Test drag gestures for drawer resizing
+6. Test debug console filtering and search
+7. Test drag gestures for drawer resizing
+8. Verify cross-platform color consistency
 
 ### Debugging Issues
 - **Drawer not appearing**: Check `isVisible` binding
 - **Animation problems**: Verify spring animation values
 - **Platform differences**: Test on both macOS and iOS
 - **File tree issues**: Check `expandedFolders` state management
+- **Debug console width**: Verify padding and frame constraints
+- **Color issues**: Use cross-platform color helpers
+
+### Adding New Debug Features
+1. Define new message types in `DebugMessageType`
+2. Add appropriate SF Symbol icons
+3. Update filter buttons if needed
+4. Connect to actual logging sources
+5. Consider persistence requirements
 
 ---
 
-*This document reflects the actual current state as of January 2025. The focus is on the bottom drawer interface and platform-specific file browsing, with document packages and iCloud sync as the next major development phase.*
+*This document reflects the actual current state as of January 2025. The debug console system is now fully integrated into the bottom drawer. The focus remains on the bottom drawer interface and platform-specific file browsing, with document packages and iCloud sync as the next major development phase.*

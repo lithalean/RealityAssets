@@ -11,16 +11,23 @@ lithalean@Mac RealityAssets % tree
 │   │   ├── AppIcon.appiconset
 │   │   │   └── Contents.json
 │   │   └── Contents.json
-│   ├── BottomDrawer.swift
-│   ├── FileSystem.swift
 │   ├── Item.swift
-│   └── Sources
-│       └── Shared
-│           ├── Extensions
-│           │   └── HapticFeedback.swift
-│           ├── PlatformColor.swift
-│           └── Types
-│               └── TreeSitterStatusTypes.swift
+│   ├── Sources
+│   │   └── Shared
+│   │       ├── Extensions
+│   │       │   └── HapticFeedback.swift
+│   │       ├── PlatformColor.swift
+│   │       └── Types
+│   │           └── TreeSitterStatusTypes.swift
+│   └── Views
+│       ├── BottomDrawer.swift
+│       ├── Console
+│       │   ├── ConsoleLogEntry.swift
+│       │   ├── ConsoleMessageType.swift
+│       │   ├── DebugConsole.swift
+│       │   ├── DebuggerOverlay.swift
+│       │   └── FloatingDebugger.swift
+│       └── FileSystem.swift
 └── RealityAssets.xcodeproj
     ├── project.pbxproj
     ├── project.xcworkspace
@@ -36,5 +43,5 @@ lithalean@Mac RealityAssets % tree
             └── xcschemes
                 └── xcschememanagement.plist
 
-20 directories, 15 files
+22 directories, 20 files
 lithalean@Mac RealityAssets % 
